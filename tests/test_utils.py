@@ -33,6 +33,10 @@ class UtilityTests(unittest.TestCase):
             self.assertEqual(resolve_video_sources(str(base / "*.mp4")), [str(base / "match.mp4")])
             self.assertEqual(resolve_video_sources("0"), [0])
             self.assertEqual(resolve_video_sources("rtsp://example.test/stream"), ["rtsp://example.test/stream"])
+            numeric_dir = base / "2024"
+            numeric_dir.mkdir()
+            (numeric_dir / "clip.mp4").write_bytes(b"0")
+            self.assertEqual(resolve_video_sources(str(numeric_dir)), [str(numeric_dir / "clip.mp4")])
 
     def test_split_pairs_validates_ratios(self) -> None:
         with self.assertRaises(ValueError):

@@ -60,11 +60,14 @@ def annotate_frame(frame: np.ndarray, result) -> tuple[np.ndarray, list[TrackAnn
     return frame, annotations
 
 
-def resolve_output_fps(model) -> float:
+def resolve_output_fps(model, source_index: int) -> float:
     dataset = getattr(getattr(model, "predictor", None), "dataset", None)
     fps = getattr(dataset, "fps", None)
     if isinstance(fps, (list, tuple)):
-        fps = next((value for value in fps if value and value > 0), None)
+        if 0 <= source_index < len(fps):
+            fps = fps[source_index]
+        else:
+            fps = next((value for value in fps if value and value > 0), None)
     return fps if fps and fps > 0 else 30.0
 
 
@@ -77,7 +80,7 @@ def build_writer(source_name: str, frame_shape: tuple[int, int, int], fps: float
     return cv2.VideoWriter(str(output_path), fourcc, fps, (frame_shape[1], frame_shape[0])), output_path
 
 
-def process_source(model, source, args: argparse.Namespace) -> None:
+def process_source(model, source, source_index: int, args: argparse.Namespace) -> None:
     import cv2
 
     stream = model.track(
@@ -95,7 +98,7 @@ def process_source(model, source, args: argparse.Namespace) -> None:
     output_path = None
     source_name = Path(str(source)).stem or f"camera_{source}"
     window_open = False
-    output_fps = resolve_output_fps(model) if args.save_output else None
+    output_fps = resolve_output_fps(model, source_index) if args.save_output else None
     for result in stream:
         frame = result.orig_img.copy()
         annotated_frame, annotations = annotate_frame(frame, result)
@@ -133,8 +136,8 @@ def main() -> None:
     from ultralytics import YOLO
 
     model = YOLO(args.model)
-    for source in sources:
-        process_source(model, source, args)
+    for source_index, source in enumerate(sources):
+        process_source(model, source, source_index, args)
 
 
 if __name__ == "__main__":

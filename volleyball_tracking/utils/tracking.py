@@ -29,12 +29,16 @@ def clamp_box(box: Iterable[float], width: int, height: int) -> tuple[int, int, 
 
 def resolve_video_sources(source: str) -> list[int | str]:
     candidate = source.strip()
-    if candidate.isdigit():
-        return [int(candidate)]
     if candidate.startswith(("rtsp://", "http://", "https://")):
         return [candidate]
 
     path = Path(candidate)
+    if path.exists():
+        if path.is_dir():
+            matches = [str(file) for file in sorted(path.iterdir()) if file.suffix.lower() in VIDEO_SUFFIXES]
+            return matches
+        return [candidate]
+
     if path.is_dir():
         matches = [str(file) for file in sorted(path.iterdir()) if file.suffix.lower() in VIDEO_SUFFIXES]
         return matches
@@ -42,5 +46,8 @@ def resolve_video_sources(source: str) -> list[int | str]:
     if any(token in candidate for token in "*?[]"):
         matches = [match for match in sorted(glob_module.glob(candidate)) if Path(match).suffix.lower() in VIDEO_SUFFIXES]
         return matches
+
+    if candidate.isdigit():
+        return [int(candidate)]
 
     return [candidate]
