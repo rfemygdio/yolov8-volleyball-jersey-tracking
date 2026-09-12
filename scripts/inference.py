@@ -58,13 +58,22 @@ def annotate_frame(frame, result) -> tuple[object, list[TrackAnnotation]]:
     return frame, annotations
 
 
-def build_writer(source_name: str, frame_shape: tuple[int, int, int]):
+def resolve_output_fps(source) -> float:
+    import cv2
+
+    capture = cv2.VideoCapture(source)
+    fps = capture.get(cv2.CAP_PROP_FPS)
+    capture.release()
+    return fps if fps and fps > 0 else 30.0
+
+
+def build_writer(source_name: str, frame_shape: tuple[int, int, int], fps: float):
     import cv2
 
     CONFIG.paths.tracks_dir.mkdir(parents=True, exist_ok=True)
     output_path = CONFIG.paths.tracks_dir / f"{source_name}.mp4"
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    return cv2.VideoWriter(str(output_path), fourcc, 30.0, (frame_shape[1], frame_shape[0])), output_path
+    return cv2.VideoWriter(str(output_path), fourcc, fps, (frame_shape[1], frame_shape[0])), output_path
 
 
 def process_source(model, source, args: argparse.Namespace) -> None:
@@ -85,11 +94,12 @@ def process_source(model, source, args: argparse.Namespace) -> None:
     output_path = None
     source_name = Path(str(source)).stem or f"camera_{source}"
     window_open = False
+    output_fps = resolve_output_fps(source) if args.save_output else None
     for result in stream:
         frame = result.orig_img.copy()
         annotated_frame, annotations = annotate_frame(frame, result)
         if args.save_output and writer is None:
-            writer, output_path = build_writer(source_name, annotated_frame.shape)
+            writer, output_path = build_writer(source_name, annotated_frame.shape, output_fps or 30.0)
         if writer is not None:
             writer.write(annotated_frame)
         if args.display:

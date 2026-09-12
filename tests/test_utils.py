@@ -31,6 +31,8 @@ class UtilityTests(unittest.TestCase):
             (base / "notes.txt").write_text("ignore", encoding="utf-8")
             self.assertEqual(resolve_video_sources(str(base)), [str(base / "match.mp4")])
             self.assertEqual(resolve_video_sources(str(base / "*.mp4")), [str(base / "match.mp4")])
+            self.assertEqual(resolve_video_sources("0"), [0])
+            self.assertEqual(resolve_video_sources("rtsp://example.test/stream"), ["rtsp://example.test/stream"])
 
     def test_split_pairs_validates_ratios(self) -> None:
         with self.assertRaises(ValueError):
