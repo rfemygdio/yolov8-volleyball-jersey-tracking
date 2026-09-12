@@ -52,7 +52,7 @@ pip install -r requirements.txt
 
 ## Configuration
 
-Edit `/home/runner/work/yolov8-volleyball-jersey-tracking/yolov8-volleyball-jersey-tracking/config.py` to change:
+Edit `config.py` to change:
 
 - dataset/model/output paths
 - training defaults such as image size, batch size, and epochs
@@ -66,8 +66,8 @@ Default dataset classes are `player` and `ball`. Update `CONFIG.dataset_classes`
 
 Place YOLO-format image/label pairs in:
 
-- `/home/runner/work/yolov8-volleyball-jersey-tracking/yolov8-volleyball-jersey-tracking/data/raw/images`
-- `/home/runner/work/yolov8-volleyball-jersey-tracking/yolov8-volleyball-jersey-tracking/data/raw/labels`
+- `data/raw/images`
+- `data/raw/labels`
 
 Bootstrap the dataset structure and generate `data/dataset.yaml`:
 

@@ -1,4 +1,4 @@
-path: /home/runner/work/yolov8-volleyball-jersey-tracking/yolov8-volleyball-jersey-tracking/data
+path: .
 train: processed/images/train
 val: processed/images/val
 test: processed/images/test

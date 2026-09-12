@@ -65,6 +65,14 @@ def split_pairs(pairs: list[tuple[Path, Path]], train_ratio: float, val_ratio: f
 def copy_split(base_dir: Path, split_name: str, assets: Iterable[tuple[Path, Path]]) -> None:
     image_target = base_dir / "processed" / "images" / split_name
     label_target = base_dir / "processed" / "labels" / split_name
+    for directory in (image_target, label_target):
+        for child in directory.iterdir():
+            if child.name == ".gitkeep":
+                continue
+            if child.is_file() or child.is_symlink():
+                child.unlink()
+            else:
+                shutil.rmtree(child)
     for image_path, label_path in assets:
         shutil.copy2(image_path, image_target / image_path.name)
         shutil.copy2(label_path, label_target / label_path.name)
@@ -73,7 +81,7 @@ def copy_split(base_dir: Path, split_name: str, assets: Iterable[tuple[Path, Pat
 def write_dataset_yaml(base_dir: Path, class_names: list[str]) -> Path:
     dataset_yaml = base_dir / "dataset.yaml"
     payload = {
-        "path": str(base_dir.resolve()),
+        "path": ".",
         "train": "processed/images/train",
         "val": "processed/images/val",
         "test": "processed/images/test",

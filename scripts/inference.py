@@ -94,6 +94,7 @@ def process_source(model, source, args: argparse.Namespace) -> None:
         if args.display:
             cv2.imshow(source_name, annotated_frame)
             if cv2.waitKey(1) & 0xFF == 27:
+                cv2.destroyWindow(source_name)
                 break
         if annotations:
             summary = ", ".join(
@@ -105,6 +106,8 @@ def process_source(model, source, args: argparse.Namespace) -> None:
     if writer is not None:
         writer.release()
         print(f"Saved annotated output to {output_path}")
+    if args.display:
+        cv2.destroyWindow(source_name)
 
 
 def main() -> None:

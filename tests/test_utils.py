@@ -6,8 +6,9 @@ from pathlib import Path
 
 import numpy as np
 
+from scripts.data_preparation import split_pairs
 from volleyball_tracking.utils.classification import classify_team_by_color, classify_team_from_bbox
-from volleyball_tracking.utils.tracking import resolve_video_sources
+from volleyball_tracking.utils.tracking import clamp_box, resolve_video_sources
 
 
 class UtilityTests(unittest.TestCase):
@@ -30,6 +31,20 @@ class UtilityTests(unittest.TestCase):
             (base / "notes.txt").write_text("ignore", encoding="utf-8")
             self.assertEqual(resolve_video_sources(str(base)), [str(base / "match.mp4")])
             self.assertEqual(resolve_video_sources(str(base / "*.mp4")), [str(base / "match.mp4")])
+
+    def test_split_pairs_validates_ratios(self) -> None:
+        with self.assertRaises(ValueError):
+            split_pairs([], train_ratio=0.8, val_ratio=0.2, seed=42)
+
+    def test_split_pairs_returns_expected_partition_sizes(self) -> None:
+        pairs = [(Path(f"image_{index}.jpg"), Path(f"image_{index}.txt")) for index in range(10)]
+        split_mapping = split_pairs(pairs, train_ratio=0.6, val_ratio=0.2, seed=42)
+        self.assertEqual(len(split_mapping["train"]), 6)
+        self.assertEqual(len(split_mapping["val"]), 2)
+        self.assertEqual(len(split_mapping["test"]), 2)
+
+    def test_clamp_box_limits_out_of_bounds_fractional_values(self) -> None:
+        self.assertEqual(clamp_box((-5.7, 3.2, 120.8, 50.9), width=100, height=40), (0, 3, 100, 40))
 
 
 if __name__ == "__main__":
