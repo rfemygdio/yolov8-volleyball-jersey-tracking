@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import shutil
 from collections.abc import Iterable
@@ -67,13 +68,21 @@ def split_manifest_paths(base_dir: Path) -> dict[str, Path]:
     return {split_name: base_dir / "splits" / f"{split_name}.json" for split_name in ("train", "val", "test")}
 
 
+def pair_manifest_key(base_dir: Path, image_path: Path, label_path: Path) -> str:
+    payload = {
+        "image": os.path.relpath(image_path.resolve(), base_dir.resolve()),
+        "label": os.path.relpath(label_path.resolve(), base_dir.resolve()),
+    }
+    return json.dumps(payload, sort_keys=True)
+
+
 def load_saved_splits(base_dir: Path, pairs: list[tuple[Path, Path]]) -> dict[str, list[tuple[Path, Path]]] | None:
     manifests = split_manifest_paths(base_dir)
     if not all(path.exists() for path in manifests.values()):
         return None
 
     pair_lookup = {
-        json.dumps({"image": str(image_path.resolve()), "label": str(label_path.resolve())}, sort_keys=True): (image_path, label_path)
+        pair_manifest_key(base_dir, image_path, label_path): (image_path, label_path)
         for image_path, label_path in pairs
     }
     loaded: dict[str, list[tuple[Path, Path]]] = {}
@@ -99,7 +108,10 @@ def write_saved_splits(base_dir: Path, split_mapping: dict[str, list[tuple[Path,
         manifest_path.write_text(
             json.dumps(
                 [
-                    {"image": str(image_path.resolve()), "label": str(label_path.resolve())}
+                    {
+                        "image": os.path.relpath(image_path.resolve(), base_dir.resolve()),
+                        "label": os.path.relpath(label_path.resolve(), base_dir.resolve()),
+                    }
                     for image_path, label_path in split_mapping[split_name]
                 ],
                 indent=2,

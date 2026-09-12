@@ -157,8 +157,8 @@ def main() -> None:
 
     from ultralytics import YOLO
 
-    model = YOLO(args.model)
     for source_index, source in enumerate(sources):
+        model = YOLO(args.model)
         process_source(model, source, source_index, args)
 
 
