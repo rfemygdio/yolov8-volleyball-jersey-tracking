@@ -98,12 +98,12 @@ def process_source(model, source, source_index: int, args: argparse.Namespace) -
     output_path = None
     source_name = Path(str(source)).stem or f"camera_{source}"
     window_open = False
-    output_fps = resolve_output_fps(model, source_index) if args.save_output else None
     for result in stream:
         frame = result.orig_img.copy()
         annotated_frame, annotations = annotate_frame(frame, result)
         if args.save_output and writer is None:
-            writer, output_path = build_writer(source_name, annotated_frame.shape, output_fps or 30.0)
+            output_fps = resolve_output_fps(model, source_index)
+            writer, output_path = build_writer(source_name, annotated_frame.shape, output_fps)
         if writer is not None:
             writer.write(annotated_frame)
         if args.display:
