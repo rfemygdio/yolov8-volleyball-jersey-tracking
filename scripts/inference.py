@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import numpy as np
+
 from config import CONFIG
 from volleyball_tracking.utils.classification import classify_team_from_bbox
 from volleyball_tracking.utils.tracking import TrackAnnotation, clamp_box, resolve_video_sources
@@ -21,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def annotate_frame(frame, result) -> tuple[object, list[TrackAnnotation]]:
+def annotate_frame(frame: np.ndarray, result) -> tuple[np.ndarray, list[TrackAnnotation]]:
     annotations: list[TrackAnnotation] = []
     boxes = getattr(result, "boxes", None)
     if boxes is None:
@@ -58,12 +60,11 @@ def annotate_frame(frame, result) -> tuple[object, list[TrackAnnotation]]:
     return frame, annotations
 
 
-def resolve_output_fps(source) -> float:
-    import cv2
-
-    capture = cv2.VideoCapture(source)
-    fps = capture.get(cv2.CAP_PROP_FPS)
-    capture.release()
+def resolve_output_fps(model) -> float:
+    dataset = getattr(getattr(model, "predictor", None), "dataset", None)
+    fps = getattr(dataset, "fps", None)
+    if isinstance(fps, (list, tuple)):
+        fps = next((value for value in fps if value and value > 0), None)
     return fps if fps and fps > 0 else 30.0
 
 
@@ -94,7 +95,7 @@ def process_source(model, source, args: argparse.Namespace) -> None:
     output_path = None
     source_name = Path(str(source)).stem or f"camera_{source}"
     window_open = False
-    output_fps = resolve_output_fps(source) if args.save_output else None
+    output_fps = resolve_output_fps(model) if args.save_output else None
     for result in stream:
         frame = result.orig_img.copy()
         annotated_frame, annotations = annotate_frame(frame, result)

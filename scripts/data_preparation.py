@@ -48,8 +48,8 @@ def paired_assets(images_dir: Path, labels_dir: Path) -> list[tuple[Path, Path]]
 
 
 def split_pairs(pairs: list[tuple[Path, Path]], train_ratio: float, val_ratio: float, seed: int) -> dict[str, list[tuple[Path, Path]]]:
-    if train_ratio <= 0 or val_ratio < 0 or train_ratio + val_ratio >= 1:
-        raise ValueError("train_ratio and val_ratio must leave room for a test split.")
+    if train_ratio <= 0 or val_ratio < 0 or train_ratio + val_ratio > 1:
+        raise ValueError("train_ratio must be positive and train_ratio + val_ratio cannot exceed 1.")
 
     shuffled = pairs[:]
     random.Random(seed).shuffle(shuffled)
