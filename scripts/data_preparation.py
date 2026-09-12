@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import random
 import shutil
 from collections.abc import Iterable
@@ -62,6 +63,41 @@ def split_pairs(pairs: list[tuple[Path, Path]], train_ratio: float, val_ratio: f
     }
 
 
+def split_manifest_paths(base_dir: Path) -> dict[str, Path]:
+    return {split_name: base_dir / "splits" / f"{split_name}.json" for split_name in ("train", "val", "test")}
+
+
+def load_saved_splits(base_dir: Path, pairs: list[tuple[Path, Path]]) -> dict[str, list[tuple[Path, Path]]] | None:
+    manifests = split_manifest_paths(base_dir)
+    if not all(path.exists() for path in manifests.values()):
+        return None
+
+    pair_lookup = {image_path.name: (image_path, label_path) for image_path, label_path in pairs}
+    loaded: dict[str, list[tuple[Path, Path]]] = {}
+    assigned_names: list[str] = []
+    for split_name, manifest_path in manifests.items():
+        names = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if not isinstance(names, list):
+            return None
+        try:
+            loaded[split_name] = [pair_lookup[name] for name in names]
+        except KeyError:
+            return None
+        assigned_names.extend(names)
+
+    if sorted(assigned_names) != sorted(pair_lookup):
+        return None
+    return loaded
+
+
+def write_saved_splits(base_dir: Path, split_mapping: dict[str, list[tuple[Path, Path]]]) -> None:
+    for split_name, manifest_path in split_manifest_paths(base_dir).items():
+        manifest_path.write_text(
+            json.dumps([image_path.name for image_path, _ in split_mapping[split_name]], indent=2),
+            encoding="utf-8",
+        )
+
+
 def copy_split(base_dir: Path, split_name: str, assets: Iterable[tuple[Path, Path]]) -> None:
     image_target = base_dir / "processed" / "images" / split_name
     label_target = base_dir / "processed" / "labels" / split_name
@@ -109,7 +145,10 @@ def main() -> None:
         print(f"No image/label pairs found in {images_dir} and {labels_dir}. Dataset config is ready at {dataset_yaml}")
         return
 
-    split_mapping = split_pairs(pairs, args.train_ratio, args.val_ratio, args.seed)
+    split_mapping = load_saved_splits(base_dir, pairs)
+    if split_mapping is None:
+        split_mapping = split_pairs(pairs, args.train_ratio, args.val_ratio, args.seed)
+        write_saved_splits(base_dir, split_mapping)
     for split_name, assets in split_mapping.items():
         copy_split(base_dir, split_name, assets)
     print({split_name: len(assets) for split_name, assets in split_mapping.items()})

@@ -38,6 +38,13 @@ class UtilityTests(unittest.TestCase):
             (numeric_dir / "clip.mp4").write_bytes(b"0")
             self.assertEqual(resolve_video_sources(str(numeric_dir)), [str(numeric_dir / "clip.mp4")])
 
+    def test_resolve_video_sources_returns_empty_when_no_supported_videos_exist(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            (base / "notes.txt").write_text("ignore", encoding="utf-8")
+            self.assertEqual(resolve_video_sources(str(base)), [])
+            self.assertEqual(resolve_video_sources(str(base / "*.mp4")), [])
+
     def test_split_pairs_validates_ratios(self) -> None:
         with self.assertRaises(ValueError):
             split_pairs([], train_ratio=0.8, val_ratio=0.3, seed=42)

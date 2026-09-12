@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 
 import numpy as np
 
@@ -80,6 +81,14 @@ def build_writer(source_name: str, frame_shape: tuple[int, int, int], fps: float
     return cv2.VideoWriter(str(output_path), fourcc, fps, (frame_shape[1], frame_shape[0])), output_path
 
 
+def safe_source_name(source) -> str:
+    source_text = str(source)
+    source_path = Path(source_text)
+    if source_path.exists():
+        return source_path.stem
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", source_text).strip("._") or "source"
+
+
 def process_source(model, source, source_index: int, args: argparse.Namespace) -> None:
     import cv2
 
@@ -96,35 +105,36 @@ def process_source(model, source, source_index: int, args: argparse.Namespace) -
 
     writer = None
     output_path = None
-    source_name = Path(str(source)).stem or f"camera_{source}"
+    source_name = safe_source_name(source)
     window_open = False
-    for result in stream:
-        frame = result.orig_img.copy()
-        annotated_frame, annotations = annotate_frame(frame, result)
-        if args.save_output and writer is None:
-            output_fps = resolve_output_fps(model, source_index)
-            writer, output_path = build_writer(source_name, annotated_frame.shape, output_fps)
+    try:
+        for result in stream:
+            frame = result.orig_img.copy()
+            annotated_frame, annotations = annotate_frame(frame, result)
+            if args.save_output and writer is None:
+                output_fps = resolve_output_fps(model, source_index)
+                writer, output_path = build_writer(source_name, annotated_frame.shape, output_fps)
+            if writer is not None:
+                writer.write(annotated_frame)
+            if args.display:
+                cv2.imshow(source_name, annotated_frame)
+                window_open = True
+                if cv2.waitKey(1) & 0xFF == 27:
+                    cv2.destroyWindow(source_name)
+                    window_open = False
+                    break
+            if annotations:
+                summary = ", ".join(
+                    f"{annotation.class_name}:{annotation.track_id if annotation.track_id is not None else 'na'}"
+                    for annotation in annotations
+                )
+                print(f"{source_name}: {summary}")
+    finally:
         if writer is not None:
-            writer.write(annotated_frame)
-        if args.display:
-            cv2.imshow(source_name, annotated_frame)
-            window_open = True
-            if cv2.waitKey(1) & 0xFF == 27:
-                cv2.destroyWindow(source_name)
-                window_open = False
-                break
-        if annotations:
-            summary = ", ".join(
-                f"{annotation.class_name}:{annotation.track_id if annotation.track_id is not None else 'na'}"
-                for annotation in annotations
-            )
-            print(f"{source_name}: {summary}")
-
-    if writer is not None:
-        writer.release()
-        print(f"Saved annotated output to {output_path}")
-    if args.display and window_open:
-        cv2.destroyWindow(source_name)
+            writer.release()
+            print(f"Saved annotated output to {output_path}")
+        if args.display and window_open:
+            cv2.destroyWindow(source_name)
 
 
 def main() -> None:
