@@ -112,6 +112,7 @@ def process_source(model, source, source_index: int, args: argparse.Namespace) -
     )
 
     writer = None
+    writer_shape = None
     output_path = None
     source_name = safe_source_name(source)
     window_open = False
@@ -122,7 +123,10 @@ def process_source(model, source, source_index: int, args: argparse.Namespace) -
             if args.save_output and writer is None:
                 output_fps = resolve_output_fps(model, source_index)
                 writer, output_path = build_writer(source_name, annotated_frame.shape, output_fps)
+                writer_shape = annotated_frame.shape[:2]
             if writer is not None:
+                if annotated_frame.shape[:2] != writer_shape:
+                    raise ValueError(f"Frame size changed for {source_name}; refusing to write mixed-dimension output.")
                 writer.write(annotated_frame)
             if args.display:
                 cv2.imshow(source_name, annotated_frame)

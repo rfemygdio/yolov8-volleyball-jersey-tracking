@@ -72,20 +72,24 @@ def load_saved_splits(base_dir: Path, pairs: list[tuple[Path, Path]]) -> dict[st
     if not all(path.exists() for path in manifests.values()):
         return None
 
-    pair_lookup = {str(image_path.resolve()): (image_path, label_path) for image_path, label_path in pairs}
+    pair_lookup = {
+        json.dumps({"image": str(image_path.resolve()), "label": str(label_path.resolve())}, sort_keys=True): (image_path, label_path)
+        for image_path, label_path in pairs
+    }
     loaded: dict[str, list[tuple[Path, Path]]] = {}
-    assigned_names: list[str] = []
+    assigned_keys: list[str] = []
     for split_name, manifest_path in manifests.items():
         names = json.loads(manifest_path.read_text(encoding="utf-8"))
         if not isinstance(names, list):
             return None
+        normalized_keys = [json.dumps(entry, sort_keys=True) if isinstance(entry, dict) else entry for entry in names]
         try:
-            loaded[split_name] = [pair_lookup[name] for name in names]
+            loaded[split_name] = [pair_lookup[key] for key in normalized_keys]
         except KeyError:
             return None
-        assigned_names.extend(names)
+        assigned_keys.extend(normalized_keys)
 
-    if sorted(assigned_names) != sorted(pair_lookup):
+    if sorted(assigned_keys) != sorted(pair_lookup):
         return None
     return loaded
 
@@ -93,7 +97,13 @@ def load_saved_splits(base_dir: Path, pairs: list[tuple[Path, Path]]) -> dict[st
 def write_saved_splits(base_dir: Path, split_mapping: dict[str, list[tuple[Path, Path]]]) -> None:
     for split_name, manifest_path in split_manifest_paths(base_dir).items():
         manifest_path.write_text(
-            json.dumps([str(image_path.resolve()) for image_path, _ in split_mapping[split_name]], indent=2),
+            json.dumps(
+                [
+                    {"image": str(image_path.resolve()), "label": str(label_path.resolve())}
+                    for image_path, label_path in split_mapping[split_name]
+                ],
+                indent=2,
+            ),
             encoding="utf-8",
         )
 
