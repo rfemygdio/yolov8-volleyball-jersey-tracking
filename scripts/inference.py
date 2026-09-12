@@ -84,6 +84,7 @@ def process_source(model, source, args: argparse.Namespace) -> None:
     writer = None
     output_path = None
     source_name = Path(str(source)).stem or f"camera_{source}"
+    window_open = False
     for result in stream:
         frame = result.orig_img.copy()
         annotated_frame, annotations = annotate_frame(frame, result)
@@ -93,8 +94,10 @@ def process_source(model, source, args: argparse.Namespace) -> None:
             writer.write(annotated_frame)
         if args.display:
             cv2.imshow(source_name, annotated_frame)
+            window_open = True
             if cv2.waitKey(1) & 0xFF == 27:
                 cv2.destroyWindow(source_name)
+                window_open = False
                 break
         if annotations:
             summary = ", ".join(
@@ -106,7 +109,7 @@ def process_source(model, source, args: argparse.Namespace) -> None:
     if writer is not None:
         writer.release()
         print(f"Saved annotated output to {output_path}")
-    if args.display:
+    if args.display and window_open:
         cv2.destroyWindow(source_name)
 
 
