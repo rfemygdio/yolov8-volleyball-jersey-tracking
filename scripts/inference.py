@@ -69,7 +69,7 @@ def resolve_output_fps(model, source_index: int) -> float:
             fps = fps[source_index]
         else:
             fps = next((value for value in fps if value and value > 0), None)
-    return fps if fps and fps > 0 else 30.0
+    return float(fps) if fps and fps > 0 else 30.0
 
 
 def build_writer(source_name: str, frame_shape: tuple[int, int, int], fps: float):

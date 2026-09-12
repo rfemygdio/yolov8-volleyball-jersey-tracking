@@ -66,6 +66,9 @@ class UtilityTests(unittest.TestCase):
     def test_clamp_box_limits_out_of_bounds_fractional_values(self) -> None:
         self.assertEqual(clamp_box((-5.7, 3.2, 120.8, 50.9), width=100, height=40), (0, 3, 100, 40))
 
+    def test_clamp_box_enforces_minimum_box_size(self) -> None:
+        self.assertEqual(clamp_box((8.7, 9.1, 8.2, 8.4), width=20, height=20), (9, 9, 10, 10))
+
 
 if __name__ == "__main__":
     unittest.main()
