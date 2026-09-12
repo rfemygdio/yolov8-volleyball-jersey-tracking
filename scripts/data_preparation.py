@@ -72,7 +72,7 @@ def load_saved_splits(base_dir: Path, pairs: list[tuple[Path, Path]]) -> dict[st
     if not all(path.exists() for path in manifests.values()):
         return None
 
-    pair_lookup = {image_path.name: (image_path, label_path) for image_path, label_path in pairs}
+    pair_lookup = {str(image_path.resolve()): (image_path, label_path) for image_path, label_path in pairs}
     loaded: dict[str, list[tuple[Path, Path]]] = {}
     assigned_names: list[str] = []
     for split_name, manifest_path in manifests.items():
@@ -93,7 +93,7 @@ def load_saved_splits(base_dir: Path, pairs: list[tuple[Path, Path]]) -> dict[st
 def write_saved_splits(base_dir: Path, split_mapping: dict[str, list[tuple[Path, Path]]]) -> None:
     for split_name, manifest_path in split_manifest_paths(base_dir).items():
         manifest_path.write_text(
-            json.dumps([image_path.name for image_path, _ in split_mapping[split_name]], indent=2),
+            json.dumps([str(image_path.resolve()) for image_path, _ in split_mapping[split_name]], indent=2),
             encoding="utf-8",
         )
 

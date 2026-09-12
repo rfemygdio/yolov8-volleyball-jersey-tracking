@@ -69,6 +69,14 @@ def resolve_output_fps(model, source_index: int) -> float:
             fps = fps[source_index]
         else:
             fps = next((value for value in fps if value and value > 0), None)
+    if (not fps or fps <= 0) and dataset is not None:
+        capture = getattr(dataset, "cap", None)
+        if isinstance(capture, (list, tuple)):
+            capture = capture[source_index] if 0 <= source_index < len(capture) else next((item for item in capture if item), None)
+        if capture is not None:
+            import cv2
+
+            fps = capture.get(cv2.CAP_PROP_FPS)
     return float(fps) if fps and fps > 0 else 30.0
 
 
